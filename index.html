@@ -5873,8 +5873,30 @@ function RegistroIRAS({
   };
   const excluir = id => {
     if (window.confirm("Excluir este registro?")) {
+      // Excluir localmente
       setIrasData(prev => prev.filter(i => i.id !== id));
       setEditando(null);
+      // Excluir no Supabase
+      excluirIRA_sb(id).then(() => {
+        setSbStatus("ok");
+        setUltimoSalvo(new Date().toLocaleTimeString("pt-BR"));
+        // Recarregar do banco
+        carregarIRAS().then(data => {
+          if (data && data.length > 0) {
+            const seen = new Set();
+            const uniq = data.filter(i => {
+              if (seen.has(i.id)) return false;
+              seen.add(i.id);
+              return true;
+            });
+            setIrasDataRaw(uniq);
+          }
+        }).catch(() => {});
+      }).catch(err => {
+        console.warn("Erro ao excluir no Supabase:", err);
+        setSbStatus("local");
+        setUltimoSalvo("exclusão local — clique Sincronizar");
+      });
     }
   };
 
